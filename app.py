@@ -322,16 +322,20 @@ if menu == "Input Prediksi":
     st.markdown("### Grafik Prediksi Curah Hujan 15 Hari")
 
     fig = px.line(
-        df_pred,
-        x="tanggal_prediksi",
-        y="prediksi_hujan_lstm",
-        markers=True,
-        title="Prediksi Curah Hujan 15 Hari ke Depan Berbasis LSTM"
-    )
-    fig.update_layout(
-        xaxis_title="Tanggal",
-        yaxis_title="Curah Hujan (mm)",
-        template="plotly_dark"
+    df_pred,
+    x="hari_ke",
+    y="prediksi_hujan_lstm",
+    markers=True,
+    text="prediksi_hujan_lstm",
+    title="Prediksi Curah Hujan 15 Hari ke Depan Berbasis LSTM"
+)
+
+fig.update_traces(textposition="top center")
+
+fig.update_layout(
+    xaxis_title="Hari Prediksi",
+    yaxis_title="Curah Hujan (mm)",
+    template="plotly_dark"
     )
     st.plotly_chart(fig, use_container_width=True)
 
