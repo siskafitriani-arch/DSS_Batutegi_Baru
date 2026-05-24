@@ -279,7 +279,9 @@ else:
 # HALAMAN INPUT
 # =====================================================
 if menu == "Input Prediksi":
+
     st.markdown('<div class="big-title">DSS Bendungan Batutegi</div>', unsafe_allow_html=True)
+
     st.markdown(
         '<div class="subtitle">Prediksi curah hujan 15 hari ke depan menggunakan model LSTM asli dari dataset penelitian</div>',
         unsafe_allow_html=True
@@ -316,50 +318,68 @@ if menu == "Input Prediksi":
     """, unsafe_allow_html=True)
 
     st.markdown("### Informasi Prediksi")
-    st.write(f"Tanggal awal prediksi: **{pd.to_datetime(tanggal_input).date()}**")
-    st.write(f"Periode prediksi: **{df_pred['tanggal_prediksi'].min().date()} s.d. {df_pred['tanggal_prediksi'].max().date()}**")
+
+    st.write(
+        f"Tanggal awal prediksi: **{pd.to_datetime(tanggal_input).date()}**"
+    )
+
+    st.write(
+        f"Periode prediksi: **{df_pred['tanggal_prediksi'].min().date()} s.d. {df_pred['tanggal_prediksi'].max().date()}**"
+    )
 
     st.markdown("### Grafik Prediksi Curah Hujan 15 Hari")
 
     fig = px.line(
-    df_pred,
-    x="hari_ke",
-    y="prediksi_hujan_lstm",
-    markers=True,
-    text="prediksi_hujan_lstm",
-    title="Prediksi Curah Hujan 15 Hari ke Depan Berbasis LSTM"
-)
-
-fig.update_traces(textposition="top center")
-
-fig.update_layout(
-    xaxis_title="Hari Prediksi",
-    yaxis_title="Curah Hujan (mm)",
-    template="plotly_dark"
+        df_pred,
+        x="hari_ke",
+        y="prediksi_hujan_lstm",
+        markers=True,
+        text="prediksi_hujan_lstm",
+        title="Prediksi Curah Hujan 15 Hari ke Depan Berbasis LSTM"
     )
+
+    fig.update_traces(
+        textposition="top center"
+    )
+
+    fig.update_layout(
+        xaxis_title="Hari Prediksi",
+        yaxis_title="Curah Hujan (mm)",
+        template="plotly_dark"
+    )
+
     st.plotly_chart(fig, use_container_width=True)
 
 # =====================================================
 # HALAMAN PREDIKSI
 # =====================================================
-fig = px.bar(
-    df_pred,
-    x="hari_ke",
-    y="prediksi_hujan_lstm",
-    color="kategori_risiko",
-    text="prediksi_hujan_lstm",
-    title="Prediksi Curah Hujan 15 Hari ke Depan"
-)
+elif menu == "Prediksi 15 Hari":
 
-fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+    st.title("Prediksi Curah Hujan 15 Hari")
 
-fig.update_layout(
-    xaxis_title="Hari Prediksi",
-    yaxis_title="Curah Hujan (mm)",
-    template="plotly_dark"
-)
+    fig = px.bar(
+        df_pred,
+        x="hari_ke",
+        y="prediksi_hujan_lstm",
+        color="kategori_risiko",
+        text="prediksi_hujan_lstm",
+        title="Prediksi Curah Hujan 15 Hari ke Depan"
+    )
 
-st.plotly_chart(fig, use_container_width=True)
+    fig.update_traces(
+        texttemplate="%{text:.2f}",
+        textposition="outside"
+    )
+
+    fig.update_layout(
+        xaxis_title="Hari Prediksi",
+        yaxis_title="Curah Hujan (mm)",
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.dataframe(df_pred, use_container_width=True)
 # =====================================================
 # HALAMAN ANALISIS RISIKO
 # =====================================================
