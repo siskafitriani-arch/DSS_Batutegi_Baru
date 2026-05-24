@@ -18,8 +18,8 @@ st.set_page_config(
 # FILE
 # =====================================================
 MODEL_FILE = "model_lstm_batutegi.keras"
-SCALER_X_FILE = "scaler_X.pkl"
-SCALER_Y_FILE = "scaler_y.pkl"
+SCALER_X_FILE = "scaler_X (1).pkl"
+SCALER_Y_FILE = "scaler_y(1).pkl"
 DATASET_FILE = "dataset_lstm_batutegi_ready.xlsx"
 
 # =====================================================
