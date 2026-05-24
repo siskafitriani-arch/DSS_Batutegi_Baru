@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+from datetime import timedelta
 
 st.set_page_config(
     page_title="DSS Bendungan Batutegi",
@@ -55,27 +56,37 @@ def rekomendasi_dss(kategori):
     else:
         return "Kondisi aman. Lanjutkan pemantauan rutin dan operasi normal."
 
-def buat_prediksi_15_hari(hujan_hari_ini):
+def buat_prediksi_15_hari(tanggal_awal, hujan_pos1, hujan_pos2):
     hasil = []
-    nilai_awal = hujan_hari_ini
+
+    # rata-rata 2 pos hujan sebagai representasi hujan wilayah/DAS
+    hujan_rata2 = (hujan_pos1 + hujan_pos2) / 2
 
     for i in range(1, 16):
+        tanggal_prediksi = tanggal_awal + timedelta(days=i)
+
         faktor_decay = 0.88 ** i
         variasi_musiman = 3 * np.sin(i / 2)
 
-        prediksi = (nilai_awal * faktor_decay) + variasi_musiman
+        pengaruh_pos1 = hujan_pos1 * 0.55
+        pengaruh_pos2 = hujan_pos2 * 0.45
 
-        if hujan_hari_ini >= 50 and i <= 3:
+        prediksi = ((pengaruh_pos1 + pengaruh_pos2) * faktor_decay) + variasi_musiman
+
+        if hujan_rata2 >= 50 and i <= 3:
             prediksi += 8
-        elif hujan_hari_ini >= 20 and i <= 3:
+        elif hujan_rata2 >= 20 and i <= 3:
             prediksi += 4
 
         prediksi = max(prediksi, 0)
-
         kategori = kategori_risiko(prediksi)
 
         hasil.append({
+            "tanggal_prediksi": tanggal_prediksi,
             "hari_ke": f"H+{i}",
+            "rainfall_1_input": round(hujan_pos1, 2),
+            "rainfall_2_input": round(hujan_pos2, 2),
+            "rainfall_mean_input": round(hujan_rata2, 2),
             "prediksi_curah_hujan": round(prediksi, 2),
             "kategori_risiko": kategori,
             "rekomendasi": rekomendasi_dss(kategori)
@@ -87,27 +98,38 @@ st.sidebar.title("DSS Batutegi")
 menu = st.sidebar.radio(
     "Menu",
     [
-        "Input Manual",
+        "Input Prediksi",
         "Prediksi 15 Hari",
         "Analisis Risiko",
-        "Rekomendasi DSS"
+        "Rekomendasi DSS",
+        "Data"
     ]
 )
 
 st.sidebar.markdown("---")
-hujan_input = st.sidebar.number_input(
-    "Input Curah Hujan Hari Ini (mm)",
+tanggal_input = st.sidebar.date_input("Tanggal awal prediksi")
+hujan_pos1 = st.sidebar.number_input(
+    "Curah Hujan Pos 1 / rainfall_1 (mm)",
     min_value=0.0,
     max_value=300.0,
     value=25.0,
     step=0.1
 )
+hujan_pos2 = st.sidebar.number_input(
+    "Curah Hujan Pos 2 / rainfall_2 (mm)",
+    min_value=0.0,
+    max_value=300.0,
+    value=20.0,
+    step=0.1
+)
 
-df = buat_prediksi_15_hari(hujan_input)
+tanggal_input = pd.to_datetime(tanggal_input)
+df = buat_prediksi_15_hari(tanggal_input, hujan_pos1, hujan_pos2)
 
 max_rain = df["prediksi_curah_hujan"].max()
 avg_rain = df["prediksi_curah_hujan"].mean()
 min_rain = df["prediksi_curah_hujan"].min()
+mean_input = (hujan_pos1 + hujan_pos2) / 2
 
 if max_rain >= 50:
     status = "SIAGA"
@@ -116,10 +138,10 @@ elif max_rain >= 20:
 else:
     status = "NORMAL"
 
-if menu == "Input Manual":
+if menu == "Input Prediksi":
     st.markdown('<div class="big-title">DSS Bendungan Batutegi</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="subtitle">Prediksi curah hujan 15 hari ke depan berdasarkan input manual curah hujan hari ini</div>',
+        '<div class="subtitle">Prediksi curah hujan 15 hari ke depan berdasarkan input dua pos hujan dan tanggal prediksi</div>',
         unsafe_allow_html=True
     )
 
@@ -127,22 +149,22 @@ if menu == "Input Manual":
 
     col1.markdown(f"""
     <div class="card">
-        <h3>Input Hujan Hari Ini</h3>
-        <h2>{hujan_input:.2f} mm</h2>
+        <h3>Pos Hujan 1</h3>
+        <h2>{hujan_pos1:.2f} mm</h2>
     </div>
     """, unsafe_allow_html=True)
 
     col2.markdown(f"""
     <div class="card">
-        <h3>Prediksi Maksimum</h3>
-        <h2>{max_rain:.2f} mm</h2>
+        <h3>Pos Hujan 2</h3>
+        <h2>{hujan_pos2:.2f} mm</h2>
     </div>
     """, unsafe_allow_html=True)
 
     col3.markdown(f"""
     <div class="card">
-        <h3>Rata-rata Prediksi</h3>
-        <h2>{avg_rain:.2f} mm</h2>
+        <h3>Rata-rata Hujan</h3>
+        <h2>{mean_input:.2f} mm</h2>
     </div>
     """, unsafe_allow_html=True)
 
@@ -153,17 +175,21 @@ if menu == "Input Manual":
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("### Informasi Prediksi")
+    st.write(f"Tanggal awal prediksi: **{tanggal_input.date()}**")
+    st.write(f"Periode prediksi: **{df['tanggal_prediksi'].min().date()} s.d. {df['tanggal_prediksi'].max().date()}**")
+
     st.markdown("### Grafik Prediksi Curah Hujan 15 Hari")
 
     fig = px.line(
         df,
-        x="hari_ke",
+        x="tanggal_prediksi",
         y="prediksi_curah_hujan",
         markers=True,
         title="Prediksi Curah Hujan 15 Hari ke Depan"
     )
     fig.update_layout(
-        xaxis_title="Hari Prediksi",
+        xaxis_title="Tanggal",
         yaxis_title="Curah Hujan (mm)",
         template="plotly_dark"
     )
@@ -174,13 +200,13 @@ elif menu == "Prediksi 15 Hari":
 
     fig = px.bar(
         df,
-        x="hari_ke",
+        x="tanggal_prediksi",
         y="prediksi_curah_hujan",
         color="kategori_risiko",
         title="Prediksi Curah Hujan dan Kategori Risiko"
     )
     fig.update_layout(
-        xaxis_title="Hari Prediksi",
+        xaxis_title="Tanggal",
         yaxis_title="Curah Hujan (mm)",
         template="plotly_dark"
     )
@@ -198,7 +224,7 @@ elif menu == "Analisis Risiko":
         risiko_count,
         names="kategori_risiko",
         values="jumlah",
-        title="Distribusi Kategori Risiko"
+        title="Distribusi Kategori Risiko 15 Hari"
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -213,8 +239,21 @@ elif menu == "Rekomendasi DSS":
 
     for _, row in df.iterrows():
         if row["kategori_risiko"] == "Tinggi":
-            st.error(f"{row['hari_ke']}: {row['prediksi_curah_hujan']} mm - {row['rekomendasi']}")
+            st.error(
+                f"{row['tanggal_prediksi'].date()} | {row['hari_ke']} | "
+                f"{row['prediksi_curah_hujan']} mm - {row['rekomendasi']}"
+            )
         elif row["kategori_risiko"] == "Sedang":
-            st.warning(f"{row['hari_ke']}: {row['prediksi_curah_hujan']} mm - {row['rekomendasi']}")
+            st.warning(
+                f"{row['tanggal_prediksi'].date()} | {row['hari_ke']} | "
+                f"{row['prediksi_curah_hujan']} mm - {row['rekomendasi']}"
+            )
         else:
-            st.success(f"{row['hari_ke']}: {row['prediksi_curah_hujan']} mm - {row['rekomendasi']}")
+            st.success(
+                f"{row['tanggal_prediksi'].date()} | {row['hari_ke']} | "
+                f"{row['prediksi_curah_hujan']} mm - {row['rekomendasi']}"
+            )
+
+elif menu == "Data":
+    st.title("Data Hasil Prediksi")
+    st.dataframe(df, use_container_width=True)
