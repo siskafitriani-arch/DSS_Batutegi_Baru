@@ -338,25 +338,24 @@ if menu == "Input Prediksi":
 # =====================================================
 # HALAMAN PREDIKSI
 # =====================================================
-elif menu == "Prediksi 15 Hari":
-    st.title("Prediksi Curah Hujan 15 Hari")
+fig = px.bar(
+    df_pred,
+    x="hari_ke",
+    y="prediksi_hujan_lstm",
+    color="kategori_risiko",
+    text="prediksi_hujan_lstm",
+    title="Prediksi Curah Hujan 15 Hari ke Depan"
+)
 
-    fig = px.bar(
-        df_pred,
-        x="tanggal_prediksi",
-        y="prediksi_hujan_lstm",
-        color="kategori_risiko",
-        title="Prediksi Curah Hujan dan Kategori Risiko"
-    )
-    fig.update_layout(
-        xaxis_title="Tanggal",
-        yaxis_title="Curah Hujan (mm)",
-        template="plotly_dark"
-    )
-    st.plotly_chart(fig, use_container_width=True)
+fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
 
-    st.dataframe(df_pred, use_container_width=True)
+fig.update_layout(
+    xaxis_title="Hari Prediksi",
+    yaxis_title="Curah Hujan (mm)",
+    template="plotly_dark"
+)
 
+st.plotly_chart(fig, use_container_width=True)
 # =====================================================
 # HALAMAN ANALISIS RISIKO
 # =====================================================
