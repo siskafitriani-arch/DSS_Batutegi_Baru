@@ -346,28 +346,27 @@ if menu == "Overview":
 elif menu == "Validasi Model":
     st.title("Validasi Model LSTM")
 
-    if aktual_col is None or pred_col is None:
-        st.error("Kolom aktual/prediksi tidak ditemukan.")
-        st.write(validasi_df.columns.tolist())
-        st.stop()
-
-    validasi_df["error"] = validasi_df[aktual_col] - validasi_df[pred_col]
-
-    fig = px.line(
-        validasi_df,
-        y=[aktual_col, pred_col],
-        title="Aktual Dataset vs Prediksi LSTM"
+    st.subheader("Data Aktual dari Dataset")
+    st.dataframe(
+        hist_df[["tanggal", "rainfall_1", "rainfall_2"]],
+        use_container_width=True
     )
+
+    st.subheader("Grafik Aktual Dataset")
+    fig = px.line(
+        hist_df,
+        x="tanggal",
+        y=["rainfall_1", "rainfall_2"],
+        title="Curah Hujan Aktual Dataset"
+    )
+
     fig.update_layout(
-        xaxis_title="Data Uji",
+        xaxis_title="Tanggal",
         yaxis_title="Curah Hujan (mm)",
         template="plotly_dark"
     )
+
     st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("### Tabel Validasi")
-    st.dataframe(validasi_df, use_container_width=True)
-
 # ======================
 # PREDIKSI INTERAKTIF
 # ======================
@@ -417,16 +416,40 @@ elif menu == "Rekomendasi DSS":
 # DATA
 # ======================
 elif menu == "Data":
-    st.title("Data Dashboard")
+    st.title("Data Aktual Dataset")
 
-    st.subheader("Data Validasi Model")
-    st.dataframe(validasi_df, use_container_width=True)
+    st.subheader("Data Aktual Curah Hujan dari Dataset")
+    st.dataframe(
+        hist_df[[
+            "tanggal",
+            "rainfall_1",
+            "rainfall_2",
+            "rainfall_1_lag_1",
+            "rainfall_1_lag_2",
+            "rainfall_1_lag_3",
+            "rainfall_1_lag_7",
+            "bulan",
+            "time_index"
+        ]],
+        use_container_width=True
+    )
+
+    st.subheader("Grafik Aktual Curah Hujan Dataset")
+
+    fig = px.line(
+        hist_df,
+        x="tanggal",
+        y=["rainfall_1", "rainfall_2"],
+        title="Data Aktual Curah Hujan dari Dataset"
+    )
+
+    fig.update_layout(
+        xaxis_title="Tanggal",
+        yaxis_title="Curah Hujan (mm)",
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Data Prediksi Interaktif")
     st.dataframe(pred15_df, use_container_width=True)
-
-    st.subheader("Data Historis")
-    st.dataframe(hist_df.tail(100), use_container_width=True)
-
-    st.subheader("Metrik Model")
-    st.dataframe(metrics_df, use_container_width=True)
