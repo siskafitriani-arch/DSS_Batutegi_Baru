@@ -196,15 +196,40 @@ def prediksi_15_hari_lstm(tanggal_awal, rainfall_1_input, rainfall_2_input):
 
         kategori = kategori_risiko(pred)
 
-        hasil.append({
-            "tanggal_prediksi": tanggal_pred,
-            "hari_ke": f"H+{i}",
-            "rainfall_1_input": round(rainfall_1_input, 2),
-            "rainfall_2_input": round(rainfall_2_input, 2),
-            "prediksi_hujan_lstm": round(pred, 2),
-            "kategori_risiko": kategori,
-            "rekomendasi": rekomendasi_dss(kategori)
-        })
+# =========================================
+# AMBIL DATA AKTUAL DARI DATASET HISTORIS
+# =========================================
+aktual_row = hist_df[hist_df["tanggal"] == tanggal_pred]
+
+if len(aktual_row) > 0:
+    aktual_dataset = float(aktual_row["rainfall_1"].iloc[0])
+else:
+    aktual_dataset = np.nan
+
+# =========================================
+# SIMPAN HASIL PREDIKSI
+# =========================================
+hasil.append({
+    "tanggal_prediksi": tanggal_pred,
+    "hari_ke": f"H+{i}",
+
+    "rainfall_1_input": round(rainfall_1_input, 2),
+    "rainfall_2_input": round(rainfall_2_input, 2),
+
+    # DATA AKTUAL
+    "aktual_dataset": round(aktual_dataset, 2)
+    if not pd.isna(aktual_dataset) else np.nan,
+
+    # HASIL PREDIKSI LSTM
+    "prediksi_hujan_lstm": round(pred, 2),
+
+    # ERROR PREDIKSI
+    "error": round(aktual_dataset - pred, 2)
+    if not pd.isna(aktual_dataset) else np.nan,
+
+    "kategori_risiko": kategori,
+    "rekomendasi": rekomendasi_dss(kategori)
+})
 
         # recursive update
         r1_series.append(pred)
