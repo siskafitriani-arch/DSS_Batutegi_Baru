@@ -230,16 +230,15 @@ hasil.append({
     "kategori_risiko": kategori,
     "rekomendasi": rekomendasi_dss(kategori)
 })
-
 # ====================================
-# RECURSIVE UPDATE
-# ====================================
-r1_series.append(pred)
+        # RECURSIVE UPDATE
+        # ====================================
+        r1_series.append(pred)
 
-# rainfall_2 mengikuti nilai terakhir
-r2_series.append(r2_series[-1])
+        # rainfall_2 mengikuti nilai terakhir
+        r2_series.append(r2_series[-1])
 
-current_time_index += 1
+        current_time_index += 1
 
     return pd.DataFrame(hasil)
 
