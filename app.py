@@ -9,17 +9,17 @@ from tensorflow.keras.models import load_model
 st.set_page_config(page_title="DSS Bendungan Batutegi", layout="wide")
 
 # ======================
-# FILE PATH
+# PATH FILE
 # ======================
-MODEL_FILE = "model_lstm_batutegi (1).keras"
-SCALER_X_FILE = "scaler_X (1).pkl"
-SCALER_Y_FILE = "scaler_y (1).pkl"
-DATASET_FILE = "dataset_lstm_batutegi_ready (1).xlsx"
-VALIDASI_FILE = "hasil_prediksi_lstm (1).xlsx"
+MODEL_FILE = "model_lstm_batutegi.keras"
+SCALER_X_FILE = "scaler_X.pkl"
+SCALER_Y_FILE = "scaler_y.pkl"
+DATASET_FILE = "dataset_lstm_batutegi_ready.xlsx"
+VALIDASI_FILE = "hasil_prediksi_lstm.xlsx"
 METRICS_FILE = "metrics_lstm.xlsx"
 
 # ======================
-# LOAD FILE
+# LOAD ARTIFACTS
 # ======================
 @st.cache_resource
 def load_artifacts():
@@ -54,22 +54,21 @@ except Exception as e:
     st.stop()
 
 # ======================
-# FEATURES
+# FEATURE COLUMNS
 # ======================
 feature_cols = [
-    "rainfall_1", "rainfall_2",
-    "rainfall_1_lag_1", "rainfall_1_lag_2", "rainfall_1_lag_3",
-    "rainfall_1_lag_4", "rainfall_1_lag_5", "rainfall_1_lag_6", "rainfall_1_lag_7",
-    "rainfall_2_lag_1", "rainfall_2_lag_2", "rainfall_2_lag_3",
-    "rainfall_2_lag_4", "rainfall_2_lag_5", "rainfall_2_lag_6", "rainfall_2_lag_7",
+    "pos_hujan_1", "pos_hujan_2",
+    "pos_hujan_1_lag_1", "pos_hujan_1_lag_2", "pos_hujan_1_lag_3",
+    "pos_hujan_1_lag_4", "pos_hujan_1_lag_5", "pos_hujan_1_lag_6", "pos_hujan_1_lag_7",
+    "pos_hujan_2_lag_1", "pos_hujan_2_lag_2", "pos_hujan_2_lag_3",
+    "pos_hujan_2_lag_4", "pos_hujan_2_lag_5", "pos_hujan_2_lag_6", "pos_hujan_2_lag_7",
     "bulan", "time_index"
 ]
 
 def clean_numeric(df, cols):
     for col in cols:
         df[col] = (
-            df[col]
-            .astype(str)
+            df[col].astype(str)
             .str.strip()
             .str.replace("o", "0", regex=False)
             .str.replace("O", "0", regex=False)
@@ -83,7 +82,7 @@ hist_df = clean_numeric(hist_df, feature_cols)
 hist_df = hist_df.dropna(subset=feature_cols + ["tanggal"]).reset_index(drop=True)
 
 # ======================
-# DSS FUNCTIONS
+# DSS RULES
 # ======================
 def kategori_risiko(nilai):
     if nilai >= 50:
@@ -101,13 +100,13 @@ def rekomendasi_dss(kategori):
     else:
         return "NORMAL - Operasi normal dan pemantauan rutin."
 
+# ======================
+# PREDIKSI 15 HARI
+# ======================
 def prediksi_15_hari_lstm(tanggal_awal, pos_hujan_1_input, pos_hujan_2_input):
     tanggal_awal = pd.to_datetime(tanggal_awal)
     data_sebelum = hist_df[hist_df["tanggal"] <= tanggal_awal].copy()
-    if len(data_sebelum) >= 7:
-        base_df = data_sebelum.tail(7).copy()
-    else:
-        base_df = hist_df.tail(7).copy()
+    base_df = data_sebelum.tail(7) if len(data_sebelum) >= 7 else hist_df.tail(7)
 
     r1_series = list(base_df["pos_hujan_1"].values) + [pos_hujan_1_input]
     r2_series = list(base_df["pos_hujan_2"].values) + [pos_hujan_2_input]
@@ -127,9 +126,9 @@ def prediksi_15_hari_lstm(tanggal_awal, pos_hujan_1_input, pos_hujan_2_input):
             row_input[f"pos_hujan_2_lag_{lag}"] = r2_series[-lag]
 
         X_input = pd.DataFrame([row_input])[feature_cols].values
-        X_scaled = scaler_X.transform(X_input).reshape((1, 1, len(feature_cols)))
+        X_scaled = scaler_X.transform(X_input).reshape((1,1,len(feature_cols)))
         pred_scaled = model.predict(X_scaled, verbose=0)
-        pred = max(float(scaler_y.inverse_transform(pred_scaled)[0][0]), 0)
+        pred = max(float(scaler_y.inverse_transform(pred_scaled)[0][0]),0)
         kategori = kategori_risiko(pred)
         hasil.append({
             "tanggal_prediksi": tanggal_pred,
@@ -142,66 +141,62 @@ def prediksi_15_hari_lstm(tanggal_awal, pos_hujan_1_input, pos_hujan_2_input):
         })
         r1_series.append(pred)
         r2_series.append(r2_series[-1])
-        current_time_index += 1
+        current_time_index +=1
+
     return pd.DataFrame(hasil)
 
 # ======================
-# SIDEBAR
+# SIDEBAR INPUT
 # ======================
-st.sidebar.title("DSS Batutegi")
-menu = st.sidebar.radio(
-    "Menu",
-    ["Overview", "Validasi Model", "Prediksi Interaktif", "Rekomendasi DSS", "Data"]
-)
+st.sidebar.title("DSS Bendungan Batutegi")
+menu = st.sidebar.radio("Menu", ["Overview","Validasi Model","Prediksi Interaktif","Rekomendasi DSS","Data"])
 pos_hujan_1_input = st.sidebar.number_input("Curah Hujan Pos 1", value=float(hist_df["pos_hujan_1"].iloc[-1]))
 pos_hujan_2_input = st.sidebar.number_input("Curah Hujan Pos 2", value=float(hist_df["pos_hujan_2"].iloc[-1]))
 tanggal_input = st.sidebar.date_input("Tanggal awal prediksi", value=hist_df["tanggal"].max())
 
-pred15_df = prediksi_15_hari_lstm(tanggal_input, pos_hujan_1_input, pos_hujan_2_input)
+pred15_df = prediksi_15_hari_lstm(tanggal_input,pos_hujan_1_input,pos_hujan_2_input)
 max_pred = pred15_df["prediksi_hujan_lstm"].max()
 status = kategori_risiko(max_pred)
 
 # ======================
 # PAGES
 # ======================
-if menu == "Overview":
+if menu=="Overview":
     st.title("Overview DSS Batutegi")
-    st.metric("Prediksi Maks 15 Hari", f"{max_pred:.2f} mm")
+    st.metric("Prediksi Maks 15 Hari",f"{max_pred:.2f} mm")
     st.metric("Status DSS", status)
-    fig = px.line(pred15_df, x="hari_ke", y="prediksi_hujan_lstm", markers=True,
-                  title="Prediksi Curah Hujan 15 Hari")
-    st.plotly_chart(fig, use_container_width=True)
+    fig = px.line(pred15_df,x="hari_ke",y="prediksi_hujan_lstm",markers=True,title="Prediksi Curah Hujan 15 Hari")
+    st.plotly_chart(fig,use_container_width=True)
 
-elif menu == "Validasi Model":
+elif menu=="Validasi Model":
     st.title("Validasi Model LSTM")
-    st.dataframe(validasi_df, use_container_width=True)
-    fig = px.line(validasi_df, y=["aktual", "prediksi"], title="Aktual vs Prediksi")
-    st.plotly_chart(fig, use_container_width=True)
+    st.dataframe(validasi_df,use_container_width=True)
+    fig = px.line(validasi_df,y=["aktual","prediksi"],title="Aktual vs Prediksi LSTM")
+    st.plotly_chart(fig,use_container_width=True)
 
-elif menu == "Prediksi Interaktif":
+elif menu=="Prediksi Interaktif":
     st.title("Prediksi Interaktif")
-    st.dataframe(pred15_df, use_container_width=True)
-    fig = px.bar(pred15_df, x="hari_ke", y="prediksi_hujan_lstm",
-                 color="kategori_risiko", text="prediksi_hujan_lstm")
-    st.plotly_chart(fig, use_container_width=True)
+    st.dataframe(pred15_df,use_container_width=True)
+    fig = px.bar(pred15_df,x="hari_ke",y="prediksi_hujan_lstm",color="kategori_risiko",text="prediksi_hujan_lstm")
+    st.plotly_chart(fig,use_container_width=True)
 
-elif menu == "Rekomendasi DSS":
+elif menu=="Rekomendasi DSS":
     st.title("Rekomendasi DSS")
     for _, row in pred15_df.iterrows():
-        if row["kategori_risiko"] == "Tinggi":
+        if row["kategori_risiko"]=="Tinggi":
             st.error(f"{row['hari_ke']} | {row['prediksi_hujan_lstm']} mm | {row['rekomendasi']}")
-        elif row["kategori_risiko"] == "Sedang":
+        elif row["kategori_risiko"]=="Sedang":
             st.warning(f"{row['hari_ke']} | {row['prediksi_hujan_lstm']} mm | {row['rekomendasi']}")
         else:
             st.success(f"{row['hari_ke']} | {row['prediksi_hujan_lstm']} mm | {row['rekomendasi']}")
 
-elif menu == "Data":
+elif menu=="Data":
     st.title("Data Dashboard")
     st.subheader("Data Historis")
-    st.dataframe(hist_df, use_container_width=True)
+    st.dataframe(hist_df,use_container_width=True)
     st.subheader("Prediksi 15 Hari")
-    st.dataframe(pred15_df, use_container_width=True)
+    st.dataframe(pred15_df,use_container_width=True)
     st.subheader("Validasi Model")
-    st.dataframe(validasi_df, use_container_width=True)
+    st.dataframe(validasi_df,use_container_width=True)
     st.subheader("Metrik Model")
-    st.dataframe(metrics_df, use_container_width=True)
+    st.dataframe(metrics_df,use_container_width=True)
