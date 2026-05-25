@@ -220,10 +220,10 @@ hasil.append({
     "aktual_dataset": round(aktual_dataset, 2)
     if not pd.isna(aktual_dataset) else np.nan,
 
-    # HASIL PREDIKSI LSTM
+    # HASIL PREDIKSI
     "prediksi_hujan_lstm": round(pred, 2),
 
-    # ERROR PREDIKSI
+    # ERROR
     "error": round(aktual_dataset - pred, 2)
     if not pd.isna(aktual_dataset) else np.nan,
 
@@ -231,14 +231,15 @@ hasil.append({
     "rekomendasi": rekomendasi_dss(kategori)
 })
 
-        # recursive update
-        r1_series.append(pred)
+# ====================================
+# RECURSIVE UPDATE
+# ====================================
+r1_series.append(pred)
 
-        # karena model hanya memprediksi rainfall_1,
-        # rainfall_2 diasumsikan mengikuti nilai terakhir input
-        r2_series.append(r2_series[-1])
+# rainfall_2 mengikuti nilai terakhir
+r2_series.append(r2_series[-1])
 
-        current_time_index += 1
+current_time_index += 1
 
     return pd.DataFrame(hasil)
 
