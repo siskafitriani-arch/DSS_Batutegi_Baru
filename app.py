@@ -10,7 +10,7 @@ st.set_page_config(
 # =========================
 # FILE HASIL NOTEBOOK
 # =========================
-VALIDASI_FILE = "hasil_prediksi_lstm.xlsx"
+VALIDASI_FILE = "hasil_prediksi_lstm (1).xlsx"
 PREDIKSI_15_FILE = "prediksi_hujan_15_hari.xlsx"
 METRICS_FILE = "metrics_lstm.xlsx"
 
