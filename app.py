@@ -61,11 +61,11 @@ except Exception as e:
 # FITUR MODEL
 # ======================
 feature_cols = [
-    "rainfall_1", "rainfall_2",
-    "rainfall_1_lag_1", "rainfall_1_lag_2", "rainfall_1_lag_3",
-    "rainfall_1_lag_4", "rainfall_1_lag_5", "rainfall_1_lag_6", "rainfall_1_lag_7",
-    "rainfall_2_lag_1", "rainfall_2_lag_2", "rainfall_2_lag_3",
-    "rainfall_2_lag_4", "rainfall_2_lag_5", "rainfall_2_lag_6", "rainfall_2_lag_7",
+    "pos_hujan_1", "pos_hujan_2",
+    "pos_hujan_1_lag_1", "pos_hujan_1_lag_2", "pos_hujan_1_lag_3",
+    "pos_hujan_1_lag_4", "pos_hujan_1_lag_5", "pos_hujan_1_lag_6", "pos_hujan_1_lag_7",
+    "pos_hujan_2_lag_1", "pos_hujan_2_lag_2", "pos_hujan_2_lag_3",
+    "pos_hujan_2_lag_4", "pos_hujan_2_lag_5", "pos_hujan_2_lag_6", "pos_hujan_2_lag_7",
     "bulan", "time_index"
 ]
 
@@ -243,26 +243,26 @@ tanggal_input = st.sidebar.date_input(
     value=hist_df["tanggal"].max()
 )
 
-rainfall_1_input = st.sidebar.number_input(
-    "Curah Hujan Pos 1 / rainfall_1 (mm)",
+pos_hujan_1_input = st.sidebar.number_input(
+    "Curah Hujan Pos 1 / pos_hujan_1 (mm)",
     min_value=0.0,
     max_value=300.0,
-    value=float(hist_df["rainfall_1"].iloc[-1]),
+    value=float(hist_df["pos_hujan_1"].iloc[-1]),
     step=0.1
 )
 
-rainfall_2_input = st.sidebar.number_input(
-    "Curah Hujan Pos 2 / rainfall_2 (mm)",
+pos_hujan_2_input = st.sidebar.number_input(
+    "Curah Hujan Pos 2 / pos_hujan_2 (mm)",
     min_value=0.0,
     max_value=300.0,
-    value=float(hist_df["rainfall_2"].iloc[-1]),
+    value=float(hist_df["pos_hujan_2"].iloc[-1]),
     step=0.1
 )
 
 pred15_df = prediksi_15_hari_lstm(
     tanggal_input,
-    rainfall_1_input,
-    rainfall_2_input
+    pos_hujan_1_input,
+    pos_hujan_2_input
 )
 
 max_pred = pred15_df["prediksi_hujan_lstm"].max()
