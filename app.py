@@ -6,25 +6,16 @@ import joblib
 from datetime import timedelta
 from tensorflow.keras.models import load_model
 
-# =====================================================
-# KONFIGURASI HALAMAN
-# =====================================================
 st.set_page_config(
     page_title="DSS Bendungan Batutegi",
     layout="wide"
 )
 
-# =====================================================
-# FILE
-# =====================================================
 MODEL_FILE = "model_lstm_batutegi (1).keras"
 SCALER_X_FILE = "scaler_X (1).pkl"
 SCALER_Y_FILE = "scaler_y (1).pkl"
 DATASET_FILE = "dataset_lstm_batutegi_ready.xlsx"
 
-# =====================================================
-# STYLE
-# =====================================================
 st.markdown("""
 <style>
 .big-title {
@@ -56,9 +47,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# =====================================================
-# LOAD ARTIFACT
-# =====================================================
 @st.cache_resource
 def load_artifacts():
     model = load_model(MODEL_FILE)
@@ -81,9 +69,6 @@ except Exception as e:
     st.error(f"Gagal memuat model/scaler/dataset: {e}")
     st.stop()
 
-# =====================================================
-# FITUR MODEL SESUAI NOTEBOOK
-# =====================================================
 feature_cols = [
     "rainfall_1", "rainfall_2",
     "rainfall_1_lag_1", "rainfall_1_lag_2", "rainfall_1_lag_3",
@@ -98,9 +83,6 @@ if missing_cols:
     st.error(f"Kolom berikut tidak ada di dataset historis: {missing_cols}")
     st.stop()
 
-# =====================================================
-# FUNGSI DSS
-# =====================================================
 def kategori_risiko(nilai):
     if nilai >= 50:
         return "Tinggi"
@@ -134,13 +116,9 @@ def clean_numeric(df, cols):
 hist_df = clean_numeric(hist_df, feature_cols)
 hist_df = hist_df.dropna(subset=feature_cols + ["tanggal"]).reset_index(drop=True)
 
-# =====================================================
-# FUNGSI PREDIKSI 15 HARI PAKAI LSTM ASLI
-# =====================================================
 def prediksi_15_hari_lstm(tanggal_awal, rainfall_1_input, rainfall_2_input):
     tanggal_awal = pd.to_datetime(tanggal_awal)
 
-    # cari data historis sebelum/sampai tanggal input
     data_sebelum = hist_df[hist_df["tanggal"] <= tanggal_awal].copy()
 
     if len(data_sebelum) >= 7:
@@ -148,20 +126,11 @@ def prediksi_15_hari_lstm(tanggal_awal, rainfall_1_input, rainfall_2_input):
     else:
         base_df = hist_df.tail(7).copy()
 
-    # ambil baris terakhir sebagai basis
     last_row = base_df.iloc[-1].copy()
 
-    # override input manual hari ini
-    last_row["tanggal"] = tanggal_awal
-    last_row["rainfall_1"] = rainfall_1_input
-    last_row["rainfall_2"] = rainfall_2_input
-    last_row["bulan"] = tanggal_awal.month
-
-    # buat lag dari 7 data terakhir historis
     r1_hist = list(base_df["rainfall_1"].values)
     r2_hist = list(base_df["rainfall_2"].values)
 
-    # masukkan input hari ini sebagai nilai terbaru
     r1_series = r1_hist + [rainfall_1_input]
     r2_series = r2_hist + [rainfall_2_input]
 
@@ -172,11 +141,10 @@ def prediksi_15_hari_lstm(tanggal_awal, rainfall_1_input, rainfall_2_input):
     for i in range(1, 16):
         tanggal_pred = tanggal_awal + timedelta(days=i)
 
-        # susun fitur sesuai urutan training
         row_input = {
             "rainfall_1": r1_series[-1],
             "rainfall_2": r2_series[-1],
-            "bulan": tanggal_awal.month,
+            "bulan": tanggal_pred.month,
             "time_index": current_time_index
         }
 
@@ -190,61 +158,35 @@ def prediksi_15_hari_lstm(tanggal_awal, rainfall_1_input, rainfall_2_input):
 
         pred_scaled = model.predict(X_scaled, verbose=0)
         pred = scaler_y.inverse_transform(pred_scaled)[0][0]
-
-        # curah hujan tidak boleh negatif
         pred = max(float(pred), 0)
 
         kategori = kategori_risiko(pred)
 
-# =========================================
-# AMBIL DATA AKTUAL DARI DATASET HISTORIS
-# =========================================
-aktual_row = hist_df[hist_df["tanggal"] == tanggal_pred]
+        aktual_row = hist_df[hist_df["tanggal"] == tanggal_pred]
 
-if len(aktual_row) > 0:
-    aktual_dataset = float(aktual_row["rainfall_1"].iloc[0])
-else:
-    aktual_dataset = np.nan
+        if len(aktual_row) > 0:
+            aktual_dataset = float(aktual_row["rainfall_1"].iloc[0])
+        else:
+            aktual_dataset = np.nan
 
-# =========================================
-# SIMPAN HASIL PREDIKSI
-# =========================================
-hasil.append({
-    "tanggal_prediksi": tanggal_pred,
-    "hari_ke": f"H+{i}",
+        hasil.append({
+            "tanggal_prediksi": tanggal_pred,
+            "hari_ke": f"H+{i}",
+            "rainfall_1_input": round(rainfall_1_input, 2),
+            "rainfall_2_input": round(rainfall_2_input, 2),
+            "aktual_dataset": round(aktual_dataset, 2) if not pd.isna(aktual_dataset) else np.nan,
+            "prediksi_hujan_lstm": round(pred, 2),
+            "error": round(aktual_dataset - pred, 2) if not pd.isna(aktual_dataset) else np.nan,
+            "kategori_risiko": kategori,
+            "rekomendasi": rekomendasi_dss(kategori)
+        })
 
-    "rainfall_1_input": round(rainfall_1_input, 2),
-    "rainfall_2_input": round(rainfall_2_input, 2),
-
-    # DATA AKTUAL
-    "aktual_dataset": round(aktual_dataset, 2)
-    if not pd.isna(aktual_dataset) else np.nan,
-
-    # HASIL PREDIKSI
-    "prediksi_hujan_lstm": round(pred, 2),
-
-    # ERROR
-    "error": round(aktual_dataset - pred, 2)
-    if not pd.isna(aktual_dataset) else np.nan,
-
-    "kategori_risiko": kategori,
-    "rekomendasi": rekomendasi_dss(kategori)
-})
-# ====================================
-        # RECURSIVE UPDATE
-        # ====================================
         r1_series.append(pred)
-
-        # rainfall_2 mengikuti nilai terakhir
         r2_series.append(r2_series[-1])
-
         current_time_index += 1
 
     return pd.DataFrame(hasil)
 
-# =====================================================
-# SIDEBAR
-# =====================================================
 st.sidebar.title("DSS Batutegi")
 st.sidebar.caption("LSTM + Hidrologi + Decision Support")
 
@@ -300,13 +242,8 @@ elif max_rain >= 20:
 else:
     status = "NORMAL"
 
-# =====================================================
-# HALAMAN INPUT
-# =====================================================
 if menu == "Input Prediksi":
-
     st.markdown('<div class="big-title">DSS Bendungan Batutegi</div>', unsafe_allow_html=True)
-
     st.markdown(
         '<div class="subtitle">Prediksi curah hujan 15 hari ke depan menggunakan model LSTM asli dari dataset penelitian</div>',
         unsafe_allow_html=True
@@ -343,14 +280,8 @@ if menu == "Input Prediksi":
     """, unsafe_allow_html=True)
 
     st.markdown("### Informasi Prediksi")
-
-    st.write(
-        f"Tanggal awal prediksi: **{pd.to_datetime(tanggal_input).date()}**"
-    )
-
-    st.write(
-        f"Periode prediksi: **{df_pred['tanggal_prediksi'].min().date()} s.d. {df_pred['tanggal_prediksi'].max().date()}**"
-    )
+    st.write(f"Tanggal awal prediksi: **{pd.to_datetime(tanggal_input).date()}**")
+    st.write(f"Periode prediksi: **{df_pred['tanggal_prediksi'].min().date()} s.d. {df_pred['tanggal_prediksi'].max().date()}**")
 
     st.markdown("### Grafik Prediksi Curah Hujan 15 Hari")
 
@@ -363,9 +294,7 @@ if menu == "Input Prediksi":
         title="Prediksi Curah Hujan 15 Hari ke Depan Berbasis LSTM"
     )
 
-    fig.update_traces(
-        textposition="top center"
-    )
+    fig.update_traces(textposition="top center")
 
     fig.update_layout(
         xaxis_title="Hari Prediksi",
@@ -375,11 +304,10 @@ if menu == "Input Prediksi":
 
     st.plotly_chart(fig, use_container_width=True)
 
-# =====================================================
-# HALAMAN PREDIKSI
-# =====================================================
-elif menu == "Prediksi 15 Hari":
+    st.markdown("### Tabel Perbandingan Aktual Dataset dan Prediksi")
+    st.dataframe(df_pred, use_container_width=True)
 
+elif menu == "Prediksi 15 Hari":
     st.title("Prediksi Curah Hujan 15 Hari")
 
     fig = px.bar(
@@ -404,10 +332,9 @@ elif menu == "Prediksi 15 Hari":
 
     st.plotly_chart(fig, use_container_width=True)
 
+    st.markdown("### Tabel Hasil Prediksi")
     st.dataframe(df_pred, use_container_width=True)
-# =====================================================
-# HALAMAN ANALISIS RISIKO
-# =====================================================
+
 elif menu == "Analisis Risiko":
     st.title("Analisis Risiko Hidrologi")
 
@@ -420,6 +347,7 @@ elif menu == "Analisis Risiko":
         values="jumlah",
         title="Distribusi Kategori Risiko 15 Hari"
     )
+
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("### Prediksi Tertinggi")
@@ -428,9 +356,6 @@ elif menu == "Analisis Risiko":
         use_container_width=True
     )
 
-# =====================================================
-# HALAMAN REKOMENDASI DSS
-# =====================================================
 elif menu == "Rekomendasi DSS":
     st.title("Rekomendasi Operasi dan Pemeliharaan Bendungan")
 
@@ -451,9 +376,6 @@ elif menu == "Rekomendasi DSS":
                 f"{row['prediksi_hujan_lstm']} mm - {row['rekomendasi']}"
             )
 
-# =====================================================
-# HALAMAN DATA HISTORIS
-# =====================================================
 elif menu == "Data Historis":
     st.title("Data Historis yang Digunakan Model")
     st.dataframe(hist_df.tail(100), use_container_width=True)
