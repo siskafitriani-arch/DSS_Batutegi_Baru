@@ -14,7 +14,7 @@ st.set_page_config(page_title="DSS Bendungan Batutegi", layout="wide")
 MODEL_FILE = "model_lstm_batutegi (1).keras"
 SCALER_X_FILE = "scaler_X (1).pkl"
 SCALER_Y_FILE = "scaler_y (1).pkl"
-DATASET_FILE = "dataset_lstm_batutegi_ready.xlsx"
+DATASET_FILE = "dataset_lstm_batutegi_ready (1).xlsx"
 VALIDASI_FILE = "hasil_prediksi_lstm (1).xlsx"
 METRICS_FILE = "metrics_lstm.xlsx"
 
@@ -57,11 +57,11 @@ except Exception as e:
 # FEATURES
 # ======================
 feature_cols = [
-    "pos_hujan_1", "pos_hujan_2",
-    "pos_hujan_1_lag_1", "pos_hujan_1_lag_2", "pos_hujan_1_lag_3",
-    "pos_hujan_1_lag_4", "pos_hujan_1_lag_5", "pos_hujan_1_lag_6", "pos_hujan_1_lag_7",
-    "pos_hujan_2_lag_1", "pos_hujan_2_lag_2", "pos_hujan_2_lag_3",
-    "pos_hujan_2_lag_4", "pos_hujan_2_lag_5", "pos_hujan_2_lag_6", "pos_hujan_2_lag_7",
+    "rainfall_1", "rainfall_2",
+    "rainfall_1_lag_1", "rainfall_1_lag_2", "rainfall_1_lag_3",
+    "rainfall_1_lag_4", "rainfall_1_lag_5", "rainfall_1_lag_6", "rainfall_1_lag_7",
+    "rainfall_2_lag_1", "rainfall_2_lag_2", "rainfall_2_lag_3",
+    "rainfall_2_lag_4", "rainfall_2_lag_5", "rainfall_2_lag_6", "rainfall_2_lag_7",
     "bulan", "time_index"
 ]
 
