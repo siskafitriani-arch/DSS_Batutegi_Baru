@@ -11,11 +11,11 @@ st.set_page_config(page_title="DSS Bendungan Batutegi", layout="wide")
 # ======================
 # PATH FILE
 # ======================
-MODEL_FILE = "model_lstm_batutegi.keras"
-SCALER_X_FILE = "scaler_X.pkl"
-SCALER_Y_FILE = "scaler_y.pkl"
+MODEL_FILE = "model_lstm_batutegi (1).keras"
+SCALER_X_FILE = "scaler_X (1).pkl"
+SCALER_Y_FILE = "scaler_y (1).pkl"
 DATASET_FILE = "dataset_lstm_batutegi_ready.xlsx"
-VALIDASI_FILE = "hasil_prediksi_lstm.xlsx"
+VALIDASI_FILE = "hasil_prediksi_lstm (1).xlsx"
 METRICS_FILE = "metrics_lstm.xlsx"
 
 # ======================
